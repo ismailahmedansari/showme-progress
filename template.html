@@ -1,0 +1,193 @@
+<title>ShowMe-Bench Labelling Board</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column of member lanes (counts only, never labels), a team bar, how to report, then the dated schedule. Static: rebuilt by tools/annotation/progress_snapshot.py. */
+:root {
+  --bg: #f3f5f7; --panel: #ffffff; --fg: #17212b; --muted: #5b6875; --line: #d8dee5;
+  --accent: #1f6f78; --accent-soft: #d6eef0; --warn: #a15c07; --warn-soft: #fbecd5; --ok: #23784a;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11171d; --panel: #18212a; --fg: #e5ebf0; --muted: #98a6b3; --line: #2b3742;
+  --accent: #5cc0c9; --accent-soft: #1d3a3e; --warn: #e9a752; --warn-soft: #3b2c16; --ok: #5dc28a; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #11171d; --panel: #18212a; --fg: #e5ebf0; --muted: #98a6b3; --line: #2b3742;
+  --accent: #5cc0c9; --accent-soft: #1d3a3e; --warn: #e9a752; --warn-soft: #3b2c16; --ok: #5dc28a; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 15px/1.5 var(--sans); }
+.wrap { max-width: 960px; margin: 0 auto; padding-inline: 16px; padding-block: 24px 48px; display: grid; gap: 20px; }
+h1 { font-size: 1.5rem; font-weight: 600; margin: 0; text-wrap: balance; }
+h2 { font-size: .8rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+p { margin: 0; }
+.sub { color: var(--muted); max-width: 65ch; }
+.rule { font-size: .85rem; color: var(--muted); border-left: 3px solid var(--accent); padding-left: 10px; max-width: 70ch; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-width: 0; }
+.lanes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.lane { display: grid; gap: 10px; }
+.lane-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.code { font: 600 1.6rem var(--mono); }
+.chip { font-size: .75rem; padding: 2px 8px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+.chip.warn { background: var(--warn-soft); color: var(--warn); }
+.metric { display: grid; gap: 4px; }
+.metric .row { display: flex; justify-content: space-between; font-size: .85rem; color: var(--muted); }
+.metric .row b { font: 500 .9rem var(--mono); color: var(--fg); font-variant-numeric: tabular-nums; }
+.bar { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .4s; }
+.bar.ok > i { background: var(--ok); }
+.facts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-size: .85rem; color: var(--muted); }
+.facts b { font: 500 .9rem var(--mono); color: var(--fg); font-variant-numeric: tabular-nums; }
+.mine { border-color: var(--accent); }
+.form { display: grid; gap: 12px; }
+.form .fields { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+label { display: grid; gap: 4px; font-size: .8rem; color: var(--muted); }
+input, select { font: 500 .95rem var(--mono); padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); width: 7.5rem; }
+button { font: 500 .9rem var(--sans); padding: 7px 14px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: var(--panel); cursor: pointer; }
+button.ghost { background: transparent; color: var(--accent); }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button:disabled { opacity: .5; cursor: default; }
+.status { font-size: .85rem; color: var(--muted); min-height: 1.3em; }
+.team { display: grid; gap: 8px; }
+.team .big { font: 600 1.1rem var(--mono); font-variant-numeric: tabular-nums; }
+.sched { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .85rem; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; }
+td.d { font-family: var(--mono); white-space: nowrap; }
+tr.now td { background: var(--accent-soft); }
+tr.past td { color: var(--muted); }
+.empty { color: var(--muted); font-size: .9rem; }
+@media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
+
+.how { display: grid; gap: 8px; }
+.how code { font: 500 .85rem var(--mono); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; overflow-wrap: anywhere; }
+.how ol { margin: 0; padding-left: 1.2rem; display: grid; gap: 4px; max-width: 70ch; }
+</style>
+
+<div class="wrap">
+  <header style="display:grid;gap:8px">
+    <h1>ShowMe-Bench Labelling Board</h1>
+    <p class="sub">Step 1 · S2 screening sample: 24 products. X and Z label all 24 independently; Y then gives the final answer for every request, without knowing who gave which label. Everyone sees everyone's pace here.</p>
+    <p class="rule">This board shows counts and hours only. Never send product ids, photo names, labels, boxes or notes with your progress, and do not discuss items until every pass on them is locked.</p>
+  </header>
+
+  <section>
+    <h2>Members</h2>
+    <div class="lanes" id="lanes"></div>
+  </section>
+
+  <section class="panel team" aria-label="Team progress">
+    <h2>Team</h2>
+    <div class="metric">
+      <div class="row"><span>Request labels by X and Z</span><b id="teamReq">0 / 192</b></div>
+      <div class="bar"><i id="teamBar"></i></div>
+    </div>
+    <div class="facts">
+      <span>Products locked</span><b id="teamLocked">0 / 48</b>
+      <span>Adjudications locked</span><b id="teamAdj">0 / 24</b>
+      <span>Hours reported</span><b id="teamHours">0.0 h</b>
+      <span>Budget</span><b>~40–45 h each</b>
+    </div>
+    <p class="status" id="updated"></p>
+  </section>
+
+  <section class="panel how" aria-label="How to report progress">
+    <h2>How to report your progress</h2>
+    <ol>
+      <li>Keep Label Studio running (<code>./start.sh</code>) and, after a labelling session, open your kit folder.</li>
+      <li>Double-click <code>update.command</code> (Mac) or run <code>./update.sh</code> (Windows WSL / Linux). It sends your counts only, never products or labels.</li>
+      <li>This page rebuilds by itself about a minute later.</li>
+      <li>If it says it could not send, run <code>.venv/bin/python kit.py progress</code> and send the <code>SHOWME-S2</code> line to the owner.</li>
+    </ol>
+  </section>
+
+  <section class="panel">
+    <h2>Schedule</h2>
+    <div class="sched"><table>
+      <thead><tr><th>Dates</th><th>Day</th><th>What</th></tr></thead>
+      <tbody id="sched"></tbody>
+    </table></div>
+  </section>
+</div>
+
+<script>
+const SNAPSHOT = /*SNAPSHOT*/null/*END*/;
+// S2 design v2 (owner, 2026-10-16): X and Z label all 24 products, Y adjudicates every request (masked)
+const TARGET = {X: {fam: 24, req: 96, adj: 0}, Y: {fam: 0, req: 0, adj: 24}, Z: {fam: 24, req: 96, adj: 0}};
+const CODES = ["X", "Y", "Z"], BUDGET_H = 40;
+const SCHEDULE = [
+  ["2026-10-16", "2026-10-16", "2", "Roles set: X and Z label, Y adjudicates; kits built; budget about 40–45 h per member for the whole project"],
+  ["2026-10-17", "2026-10-18", "3–4", "Step 1 · everyone: install the kit, read the guide, practice (about 1.5 h)"],
+  ["2026-10-18", "2026-10-24", "4–10", "Step 1 · X and Z: label your 24 products (about 6–7 h each). Y: 4-product practice recheck (about 1 h)"],
+  ["2026-10-24", "2026-10-25", "10–11", "Step 1 · X and Z: export and send to the owner; Claude locks them"],
+  ["2026-10-25", "2026-10-27", "11–13", "Step 1 · Y: adjudicate all 24 products (confirm agreements, decide differences; about 3–4 h)"],
+  ["2026-10-27", "2026-10-28", "13–14", "Gate 1b · Claude: estimates, measured minutes per request, hours recomputed per member"],
+  ["2026-10-29", "2026-11-04", "15–21", "Step 2 · pilot, 20 products (X and Z about 7 h, Y about 3 h; roles confirmed before it starts)"],
+  ["2026-11-01", "2026-11-04", "18–21", "Step 1 · X and Z: variant checks (at least 7 days after your own labels, about 1 h)"],
+  ["2026-11-05", "2026-11-20", "22–37", "Step 3 · build 150 products / 600 requests (about 1.5 h a day; X and Z about 22 h, Y about 28 h)"],
+  ["2026-11-29", "2026-12-11", "46–58", "Human reference: 100 requests answered blind (about 2 h each)"],
+];
+const $ = id => document.getElementById(id);
+const fmtH = m => (m / 60).toFixed(1) + " h";
+function pct(n, d) { return Math.max(0, Math.min(100, d ? 100 * n / d : 0)); }
+function iso(d) { return d.toISOString().slice(0, 10); }
+
+function renderSchedule() {
+  const today = iso(new Date());
+  $("sched").replaceChildren(...SCHEDULE.map(([a, b, day, what]) => {
+    const tr = document.createElement("tr");
+    if (today >= a && today <= b) tr.className = "now"; else if (today > b) tr.className = "past";
+    for (const [txt, cls] of [[a === b ? a.slice(5) : a.slice(5) + " → " + b.slice(5), "d"], [day, "d"], [what, ""]]) {
+      const td = document.createElement("td"); td.textContent = txt; if (cls) td.className = cls; tr.append(td);
+    }
+    return tr;
+  }));
+}
+
+function metric(label, n, d, ok) {
+  const w = document.createElement("div"); w.className = "metric";
+  const r = document.createElement("div"); r.className = "row";
+  const s = document.createElement("span"); s.textContent = label;
+  const b = document.createElement("b"); b.textContent = `${n} / ${d}`;
+  r.append(s, b);
+  const bar = document.createElement("div"); bar.className = "bar" + (ok ? " ok" : "");
+  const i = document.createElement("i"); i.style.width = pct(n, d) + "%"; bar.append(i);
+  w.append(r, bar); return w;
+}
+
+function lane(code, m) {
+  const T = TARGET[code];
+  const el = document.createElement("article"); el.className = "panel lane";
+  const head = document.createElement("div"); head.className = "lane-head";
+  const c = document.createElement("span"); c.className = "code"; c.textContent = code;
+  const chip = document.createElement("span"); chip.className = "chip";
+  if (m.reported_at) chip.textContent = "reported " + m.reported_at.slice(5, 10) + " " + m.reported_at.slice(11, 16);
+  else { chip.className += " warn"; chip.textContent = "no report yet"; }
+  head.append(c, chip);
+  const facts = document.createElement("div"); facts.className = "facts";
+  const fact = (k, v) => { const s = document.createElement("span"); s.textContent = k; const b = document.createElement("b"); b.textContent = v; facts.append(s, b); };
+  fact("Hours reported", ((m.ls_minutes + m.other_minutes) / 60).toFixed(1) + " of ~" + BUDGET_H + " h");
+  fact("Label Studio time", fmtH(m.ls_minutes));
+  fact("Min / request", m.requests && m.ls_minutes ? (m.ls_minutes / m.requests).toFixed(1) : "–");
+  fact("Role", T.fam ? "labeller" : "adjudicator");
+  if (T.fam) el.append(head, metric("Products labelled", m.products, T.fam), metric("Request labels", m.requests, T.req),
+                       metric("Products locked by Claude", m.primary_locked, T.fam, true), facts);
+  else el.append(head, metric("Products adjudicated", m.products, T.adj),
+                 metric("Adjudications locked by Claude", m.adjudication_locked, T.adj, true), facts);
+  return el;
+}
+
+function render() {
+  renderSchedule();
+  const empty = {products: 0, requests: 0, ls_minutes: 0, other_minutes: 0, reported_at: "", primary_locked: 0, adjudication_locked: 0};
+  const ms = Object.fromEntries(CODES.map(c => [c, Object.assign({}, empty, (SNAPSHOT && SNAPSHOT.members[c]) || {})]));
+  $("lanes").replaceChildren(...CODES.map(c => lane(c, ms[c])));
+  const req = ms.X.requests + ms.Z.requests;
+  $("teamReq").textContent = `${req} / 192`;
+  $("teamBar").style.width = pct(req, 192) + "%";
+  $("teamLocked").textContent = `${ms.X.primary_locked + ms.Z.primary_locked} / 48`;
+  $("teamAdj").textContent = `${ms.Y.adjudication_locked} / 24`;
+  $("teamHours").textContent = fmtH(CODES.reduce((t, c) => t + ms[c].ls_minutes + ms[c].other_minutes, 0));
+  $("updated").textContent = SNAPSHOT ? "Updated " + new Date(SNAPSHOT.updated_at).toLocaleString() + " from members' kits and the owner's lock counts." : "No progress reported yet.";
+}
+render();
+</script>
