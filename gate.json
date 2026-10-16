@@ -1,1 +1,23 @@
-{"members": {}, "updated_at": null}
+{
+ "members": {
+  "X": {
+   "primary_issued": 24,
+   "primary_locked": 0,
+   "adjudication_issued": 0,
+   "adjudication_locked": 0
+  },
+  "Y": {
+   "primary_issued": 0,
+   "primary_locked": 0,
+   "adjudication_issued": 0,
+   "adjudication_locked": 0
+  },
+  "Z": {
+   "primary_issued": 24,
+   "primary_locked": 0,
+   "adjudication_issued": 0,
+   "adjudication_locked": 0
+  }
+ },
+ "updated_at": "2026-10-16T15:09:39.207062+00:00"
+}
