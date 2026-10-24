@@ -2,7 +2,7 @@
  "members": {
   "X": {
    "primary_issued": 24,
-   "primary_locked": 0,
+   "primary_locked": 24,
    "adjudication_issued": 0,
    "adjudication_locked": 0
   },
@@ -19,5 +19,5 @@
    "adjudication_locked": 0
   }
  },
- "updated_at": "2026-10-16T15:09:39.207062+00:00"
+ "updated_at": "2026-10-24T22:29:48.303737+00:00"
 }
